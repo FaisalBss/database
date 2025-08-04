@@ -2,13 +2,26 @@
 require_once 'db.php';
 require_once 'employee.php';
 
+
+    if(isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])){
+        $id = filter_input(INPUT_GET, 'id' , FILTER_SANITIZE_NUMBER_INT);
+        if($id > 0) {
+            $sql = 'SELECT * FROM employee WHERE id = :id';
+            $result = $connection->prepare($sql);
+            $fondUser = $result->execute(array(':id' => $id));
+            if($fondUser === true) {
+                $user = $result->fetchAll(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Employee', array('name', 'age', 'address', 'tax', 'salary'));
+                $user = array_shift($user);
+            }
+        }
+    }
     if($_SERVER['REQUEST_METHOD'] === 'POST'){
-        $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
-        $address = filter_input(INPUT_POST, 'address', FILTER_SANITIZE_STRING);
+        $name = htmlspecialchars($_POST['name']);
+        $address = htmlspecialchars($_POST['address']);
         $age = filter_input(INPUT_POST, 'age' , FILTER_SANITIZE_NUMBER_INT);
         $salary = filter_input(INPUT_POST, 'salary' , FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
         $tax = filter_input(INPUT_POST, 'tax' , FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
-
+        
         $parms = array(
             ':name' => $name,
             ':age' => $age,
@@ -16,33 +29,28 @@ require_once 'employee.php';
             ':salary' => $salary,
             ':tax' => $tax,
         );
-        $employee = new Employee;
-        $employee->name = $name;
-        $employee->age = $age;
-        $employee->salary = $salary;
-        $employee->tax = $tax;
-        $employee->address = $address;
 
-        $insertStmt = $connection->prepare('INSERT INTO employee (name, address, salary, tax, age) VALUES (:name, :address, :salary, :tax, :age)');
-        $insertStmt->bindParam(':name', $name);
-        $insertStmt->bindParam(':address', $address);
-        $insertStmt->bindParam(':salary', $salary);
-        $insertStmt->bindParam(':tax', $tax);
-        $insertStmt->bindParam(':age', $age);
-
-        if ($insertStmt->execute()) {
-            $messege = 'Employee, ' . htmlspecialchars($name) . ' has been added to the database.';
+        if(isset($user)) {
+            $sql = 'UPDATE employee SET name = :name,  address = :address, salary = :salary, tax = :tax, age = :age';
+            $parms[':id'] = $id;
+        } else{
+            $sql = 'INSERT INTO employee SET name = :name,  address = :address, salary = :salary, tax = :tax, age = :age';
+        }
+       
+        $stmt = $connection->prepare($sql);
+        
+        if ($stmt->execute($parms) === true) {
+            $messege = 'Employee, ' . htmlspecialchars($name) . ' has been saved to the database.';
         } else {
             $error = true;
-            $messege = 'There was a problem adding the employee ' . htmlspecialchars($name);
+            $messege = 'There was a problem saving the employee ' . htmlspecialchars($name);
         }
-
-
+    
      }
 
      $sql = 'SELECT * FROM employee';
      $stmt = $connection->query($sql);
-     $result = $stmt->fetchAll(PDO::FETCH_CLASS, 'Employee');
+     $result = $stmt->fetchAll(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Employee' , array('name', 'age', 'address', 'tax', 'salary'));
      $result = (is_array($result) && !empty($result)) ? $result : false;
 
 ?>
@@ -72,7 +80,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="text" name="name" id="name" placeholder="Write employee name" maxlength="50">
+                    <input type="text" name="name" id="name" placeholder="Write employee name" maxlength="50" value="<?= isset($user) ? $user->name : '' ?> ">
                 </td>
             </tr>
             <tr>
@@ -83,7 +91,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="number" name="age" id="age" min="20" max="70">
+                    <input type="number" name="age" id="age" min="20" max="70" value="<?= isset($user) ? $user->age : '' ?> ">
                 </td>
             </tr>
             <tr>
@@ -93,7 +101,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="text" name="address" id="address" placeholder="Write employee address" maxlength="100">
+                    <input type="text" name="address" id="address" placeholder="Write employee address" maxlength="100" value="<?= isset($user) ? $user->address : '' ?> ">
                 </td>
             </tr>
             <tr>
@@ -103,7 +111,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="number" step="0.01" name="salary" id="salary" min="1500" max="90000" maxlength="50">
+                    <input type="number" step="0.01" name="salary" id="salary" min="1500" max="90000" maxlength="50" value="<?= isset($user) ? $user->salary : '' ?> ">
                 </td>
             </tr>
             <tr>
@@ -113,7 +121,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="number" step="0.01" name="tax" id="tax" min="1" max="5" maxlength="50">
+                    <input type="number" step="0.01" name="tax" id="tax" min="1" max="5" maxlength="50" value="<?= isset($user) ? $user->tax : '' ?> ">
                 </td>
             </tr>
             <tr>
@@ -144,13 +152,14 @@ require_once 'employee.php';
                         foreach ($result as $employee) {
                 ?>
                 <tr>
-                    <td><?= $employee->name ?></td>
-                    <td><?= $employee->age ?></td>
-                    <td><?= $employee->address ?></td>
-                    <td><?= $employee->calculateSalary() ?>SR</td>
-                    <td><?= $employee->tax ?></td>
+                    <td><?= htmlspecialchars($employee->name) ?></td>
+                    <td><?= htmlspecialchars($employee->age) ?></td>
+                    <td><?= htmlspecialchars($employee->address) ?></td>
+                    <td><?= htmlspecialchars($employee->calculateSalary()) ?>SR</td>
+                    <td><?= htmlspecialchars($employee->tax) ?></td>
                     <td>
-                        <a href=""></a>>edit</a>
+                        <a href="/practice/?action=edit&id=<?= $employee->id?>">edit</a>
+                        <a href="/practice/?action=edit&delete=<?= $employee->id?>">delete</a>
                     </td>
                 </tr>
                 <?php 
