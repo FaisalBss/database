@@ -8,9 +8,9 @@ require_once 'employee.php';
         if($id > 0) {
             $sql = 'SELECT * FROM employee WHERE id = :id';
             $result = $connection->prepare($sql);
-            $fondUser = $result->execute(array(':id' => $id));
-            if($fondUser === true) {
-                $user = $result->fetchAll(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Employee', array('name', 'age', 'address', 'tax', 'salary'));
+            $foundUser = $result->execute(array(':id' => $id));
+            if($foundUser === true) {
+                $user = $result->fetchAll(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Employee', array('name', 'age', 'address', 'salary', 'tax'));
                 $user = array_shift($user);
             }
         }
@@ -30,8 +30,9 @@ require_once 'employee.php';
             ':tax' => $tax,
         );
 
-        if(isset($user)) {
-            $sql = 'UPDATE employee SET name = :name,  address = :address, salary = :salary, tax = :tax, age = :age';
+        if(isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
+            $id = filter_input(INPUT_GET, 'id' , FILTER_SANITIZE_NUMBER_INT);
+            $sql = 'UPDATE employee SET name = :name,  address = :address, salary = :salary, tax = :tax, age = :age WHERE id = :id';
             $parms[':id'] = $id;
         } else{
             $sql = 'INSERT INTO employee SET name = :name,  address = :address, salary = :salary, tax = :tax, age = :age';
@@ -80,7 +81,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="text" name="name" id="name" placeholder="Write employee name" maxlength="50" value="<?= isset($user) ? $user->name : '' ?> ">
+                    <input type="text" name="name" id="name" placeholder="Write employee name" maxlength="50" value="<?= isset($user) ? $user->name : '' ?>">
                 </td>
             </tr>
             <tr>
@@ -91,7 +92,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="number" name="age" id="age" min="20" max="70" value="<?= isset($user) ? $user->age : '' ?> ">
+                    <input type="number" name="age" id="age" min="20" max="70" value="<?= isset($user) ? $user->age : '' ?>">
                 </td>
             </tr>
             <tr>
@@ -101,7 +102,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="text" name="address" id="address" placeholder="Write employee address" maxlength="100" value="<?= isset($user) ? $user->address : '' ?> ">
+                    <input type="text" name="address" id="address" placeholder="Write employee address" maxlength="100" value="<?= isset($user) ? $user->address : ''?>">
                 </td>
             </tr>
             <tr>
@@ -111,7 +112,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="number" step="0.01" name="salary" id="salary" min="1500" max="90000" maxlength="50" value="<?= isset($user) ? $user->salary : '' ?> ">
+                    <input type="number" step="0.01" name="salary" id="salary" min="1500" max="90000" maxlength="50" value="<?= isset($user) ? $user->salary : '' ?>">
                 </td>
             </tr>
             <tr>
@@ -121,7 +122,7 @@ require_once 'employee.php';
             </tr>
             <tr>
                 <td>
-                    <input type="number" step="0.01" name="tax" id="tax" min="1" max="5" maxlength="50" value="<?= isset($user) ? $user->tax : '' ?> ">
+                    <input type="number" step="0.01" name="tax" id="tax" min="1" max="5" maxlength="50" value="<?= isset($user) ? $user->tax : '' ?>">
                 </td>
             </tr>
             <tr>
